@@ -16,6 +16,8 @@ function App() {
   const [giftOpened, setGiftOpened] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showBalloons, setShowBalloons] = useState(false);
+  const [showBirthdayBanner, setShowBirthdayBanner] = useState(false);
+  const [showBirthdayBackground, setShowBirthdayBackground] = useState(false);
 
   // Audio refs
   const countdownAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -151,10 +153,19 @@ function App() {
       setShowClickHint(false);
       setShowConfetti(true);
       
+      // Show birthday background and banner
+      setTimeout(() => {
+        setShowBirthdayBackground(true);
+      }, 500);
+      
+      setTimeout(() => {
+        setShowBirthdayBanner(true);
+      }, 1000);
+      
       // Show balloons after confetti starts
       setTimeout(() => {
         setShowBalloons(true);
-      }, 500);
+      }, 1500);
       
       // Hide confetti and balloons after animation
       setTimeout(() => {
@@ -182,6 +193,18 @@ function App() {
       <div className="absolute inset-0 opacity-20 pointer-events-none">
         <div className="film-grain"></div>
       </div>
+
+      {/* Birthday Background Overlay */}
+      {showBirthdayBackground && (
+        <div className="birthday-background-overlay">
+          <div className="birthday-pattern"></div>
+          <div className="birthday-bubbles">
+            {[...Array(20)].map((_, i) => (
+              <div key={i} className={`birthday-bubble birthday-bubble-${i}`}></div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Countdown Stage */}
       {stage === 'countdown' && (
@@ -405,6 +428,43 @@ function App() {
                   <p>Click on the gift box! 🎁</p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Birthday Banner */}
+          {showBirthdayBanner && (
+            <div className="birthday-banner-container">
+              <div className="banner-line banner-line-1">
+                <div className="flag">🎉</div>
+                <div className="flag">H</div>
+                <div className="flag">A</div>
+                <div className="flag">P</div>
+                <div className="flag">P</div>
+                <div className="flag">Y</div>
+                <div className="flag">🎉</div>
+              </div>
+              
+              <div className="banner-line banner-line-2">
+                <div className="flag">B</div>
+                <div className="flag">I</div>
+                <div className="flag">R</div>
+                <div className="flag">T</div>
+                <div className="flag">H</div>
+                <div className="flag">D</div>
+                <div className="flag">A</div>
+                <div className="flag">Y</div>
+              </div>
+              
+              <div className="banner-line banner-line-3">
+                <div className="flag">C</div>
+                <div className="flag">H</div>
+                <div className="flag">U</div>
+                <div className="flag">I</div>
+                <div className="flag">Y</div>
+                <div className="flag">A</div>
+                <div className="flag">A</div>
+                <div className="flag">💖</div>
+              </div>
             </div>
           )}
 
