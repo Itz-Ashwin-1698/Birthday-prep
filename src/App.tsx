@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Heart, Sparkles, Gift } from 'lucide-react';
+import { Heart, Sparkles, Gift, Wind } from 'lucide-react';
 
 function App() {
   const [stage, setStage] = useState<'countdown' | 'spotlight' | 'curtains' | 'reveal' | 'birthday'>('countdown');
@@ -18,6 +18,16 @@ function App() {
   const [showBalloons, setShowBalloons] = useState(false);
   const [showBirthdayBanner, setShowBirthdayBanner] = useState(false);
   const [showPhotoBalloons, setShowPhotoBalloons] = useState(false);
+  const [showBirthdayBackground, setShowBirthdayBackground] = useState(false);
+  const [showFloatingBubbles, setShowFloatingBubbles] = useState(false);
+  const [showLiveCake, setShowLiveCake] = useState(false);
+  
+  // Candle states
+  const [candlesLit, setCandlesLit] = useState([true, true, true, true, true]); // 5 candles
+  const [showBlowButton, setShowBlowButton] = useState(false);
+  const [blowingAnimation, setBlowingAnimation] = useState(false);
+  const [allCandlesBlown, setAllCandlesBlown] = useState(false);
+  const [showWishMessage, setShowWishMessage] = useState(false);
 
   // Canvas ref for confetti
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -28,6 +38,7 @@ function App() {
   const ratEntranceAudioRef = useRef<HTMLAudioElement | null>(null);
   const curtainOpenAudioRef = useRef<HTMLAudioElement | null>(null);
   const birthdayMusicRef = useRef<HTMLAudioElement | null>(null);
+  const candleBlowAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Initialize audio
   useEffect(() => {
@@ -36,6 +47,7 @@ function App() {
     ratEntranceAudioRef.current = new Audio('https://www.soundjay.com/misc/sounds/magic-chime-02.wav');
     curtainOpenAudioRef.current = new Audio('https://www.soundjay.com/misc/sounds/ta-da.wav');
     birthdayMusicRef.current = new Audio('https://www.soundjay.com/misc/sounds/happy-birthday-song.wav');
+    candleBlowAudioRef.current = new Audio('https://www.soundjay.com/misc/sounds/blow-candle.wav');
 
     // Set audio properties
     if (countdownAudioRef.current) {
@@ -52,10 +64,13 @@ function App() {
       birthdayMusicRef.current.volume = 0.5;
       birthdayMusicRef.current.loop = true;
     }
+    if (candleBlowAudioRef.current) {
+      candleBlowAudioRef.current.volume = 0.7;
+    }
 
     return () => {
       // Cleanup audio
-      [countdownAudioRef, ratEntranceAudioRef, curtainOpenAudioRef, birthdayMusicRef].forEach(ref => {
+      [countdownAudioRef, ratEntranceAudioRef, curtainOpenAudioRef, birthdayMusicRef, candleBlowAudioRef].forEach(ref => {
         if (ref.current) {
           ref.current.pause();
           ref.current = null;
@@ -63,6 +78,24 @@ function App() {
       });
     };
   }, []);
+
+  // Check if all candles are blown out
+  useEffect(() => {
+    const allBlown = candlesLit.every(candle => !candle);
+    if (allBlown && !allCandlesBlown) {
+      setAllCandlesBlown(true);
+      setShowBlowButton(false);
+      
+      // Show wish message after all candles are blown
+      setTimeout(() => {
+        setShowWishMessage(true);
+        // Hide wish message after 5 seconds
+        setTimeout(() => {
+          setShowWishMessage(false);
+        }, 5000);
+      }, 1000);
+    }
+  }, [candlesLit, allCandlesBlown]);
 
   // Confetti animation
   useEffect(() => {
@@ -214,18 +247,41 @@ function App() {
       // Transform to birthday scene
       setTimeout(() => {
         setStage('birthday');
-        setShowBirthdayBanner(true);
-        setShowConfetti(true);
+        
+        // Show birthday background first
+        setTimeout(() => {
+          setShowBirthdayBackground(true);
+          setShowFloatingBubbles(true);
+        }, 500);
+        
+        // Show birthday banner
+        setTimeout(() => {
+          setShowBirthdayBanner(true);
+        }, 1000);
+        
+        // Show confetti
+        setTimeout(() => {
+          setShowConfetti(true);
+        }, 1500);
+        
+        // Show live cake
+        setTimeout(() => {
+          setShowLiveCake(true);
+          // Show blow button after cake appears
+          setTimeout(() => {
+            setShowBlowButton(true);
+          }, 2000);
+        }, 2000);
         
         // Show photo balloons after confetti starts
         setTimeout(() => {
           setShowPhotoBalloons(true);
-        }, 1000);
+        }, 2500);
         
         // Show regular balloons after photo balloons
         setTimeout(() => {
           setShowBalloons(true);
-        }, 2000);
+        }, 3500);
         
         // Hide confetti after animation
         setTimeout(() => {
@@ -250,9 +306,51 @@ function App() {
     }
   };
 
+  const handleBlowCandles = () => {
+    if (blowingAnimation) return;
+    
+    setBlowingAnimation(true);
+    
+    // Play blow sound
+    if (candleBlowAudioRef.current) {
+      candleBlowAudioRef.current.play().catch(() => {
+        console.log('Audio play failed');
+      });
+    }
+    
+    // Blow out 1-2 random candles
+    const litCandles = candlesLit.map((lit, index) => lit ? index : -1).filter(index => index !== -1);
+    if (litCandles.length > 0) {
+      const candlesToBlow = Math.min(2, litCandles.length);
+      const randomCandles = [];
+      
+      for (let i = 0; i < candlesToBlow; i++) {
+        const randomIndex = Math.floor(Math.random() * litCandles.length);
+        const candleIndex = litCandles.splice(randomIndex, 1)[0];
+        randomCandles.push(candleIndex);
+      }
+      
+      // Blow out candles with delay
+      randomCandles.forEach((candleIndex, i) => {
+        setTimeout(() => {
+          setCandlesLit(prev => {
+            const newState = [...prev];
+            newState[candleIndex] = false;
+            return newState;
+          });
+        }, i * 200);
+      });
+    }
+    
+    // Reset blowing animation
+    setTimeout(() => {
+      setBlowingAnimation(false);
+    }, 1000);
+  };
+
   // Enable audio on first user interaction
   const enableAudio = () => {
-    [countdownAudioRef, ratEntranceAudioRef, curtainOpenAudioRef, birthdayMusicRef].forEach(ref => {
+    [countdownAudioRef, ratEntranceAudioRef, curtainOpenAudioRef, birthdayMusicRef, candleBlowAudioRef].forEach(ref => {
       if (ref.current) {
         ref.current.load();
       }
@@ -260,7 +358,7 @@ function App() {
   };
 
   return (
-    <div className={`min-h-screen relative overflow-hidden ${stage === 'birthday' ? 'birthday-background' : 'bg-black'}`} onClick={enableAudio}>
+    <div className={`min-h-screen relative overflow-hidden ${stage === 'birthday' ? (showBirthdayBackground ? 'birthday-background' : 'bg-black') : 'bg-black'}`} onClick={enableAudio}>
       {/* Film grain overlay */}
       <div className="absolute inset-0 opacity-20 pointer-events-none">
         <div className="film-grain"></div>
@@ -269,6 +367,22 @@ function App() {
       {/* Birthday Stage - New Interface */}
       {stage === 'birthday' && (
         <>
+          {/* Birthday Background Overlay */}
+          {showBirthdayBackground && (
+            <div className="birthday-background-overlay">
+              <div className="birthday-pattern"></div>
+            </div>
+          )}
+
+          {/* Floating Birthday Bubbles */}
+          {showFloatingBubbles && (
+            <div className="floating-bubbles">
+              {[...Array(20)].map((_, i) => (
+                <div key={i} className={`bubble bubble-${i}`}></div>
+              ))}
+            </div>
+          )}
+
           {/* Confetti Canvas */}
           {showConfetti && (
             <canvas
@@ -281,15 +395,22 @@ function App() {
           {showBirthdayBanner && (
             <div className="birthday-letter-banner">
               <div className="banner-line">
-                {['H', 'A', 'P', 'P', 'Y', ' ', 'B', 'I', 'R', 'T', 'H', 'D', 'A', 'Y'].map((letter, index) => (
-                  <div key={index} className={`letter-box ${letter === ' ' ? 'space' : ''}`}>
-                    {letter !== ' ' ? letter : ''}
+                {['🎉', 'H', 'A', 'P', 'P', 'Y', '🎉'].map((letter, index) => (
+                  <div key={index} className={`letter-box ${letter.includes('🎉') ? 'emoji-box' : ''}`}>
+                    {letter}
                   </div>
                 ))}
               </div>
               <div className="banner-line">
-                {['C', 'H', 'U', 'I', 'Y', 'A', 'A'].map((letter, index) => (
-                  <div key={index} className="letter-box letter-box-pink">
+                {['B', 'I', 'R', 'T', 'H', 'D', 'A', 'Y'].map((letter, index) => (
+                  <div key={index} className="letter-box">
+                    {letter}
+                  </div>
+                ))}
+              </div>
+              <div className="banner-line">
+                {['C', 'H', 'U', 'I', 'Y', 'A', 'A', '💖'].map((letter, index) => (
+                  <div key={index} className={`letter-box letter-box-pink ${letter.includes('💖') ? 'emoji-box' : ''}`}>
                     {letter}
                   </div>
                 ))}
@@ -297,10 +418,70 @@ function App() {
             </div>
           )}
 
-          {/* Birthday Cake */}
-          <div className="birthday-cake-container">
-            <div className="birthday-cake-emoji">🎂</div>
-          </div>
+          {/* Live Birthday Cake */}
+          {showLiveCake && (
+            <div className="live-cake-container">
+              <div className="cake-base">
+                {/* Cake Layers */}
+                <div className="cake-layer cake-layer-bottom">
+                  <div className="cake-decoration-bottom"></div>
+                </div>
+                <div className="cake-layer cake-layer-middle">
+                  <div className="cake-decoration-middle"></div>
+                </div>
+                <div className="cake-layer cake-layer-top">
+                  <div className="cake-decoration-top"></div>
+                </div>
+                
+                {/* Candles */}
+                <div className="candles-container">
+                  {candlesLit.map((isLit, index) => (
+                    <div key={index} className={`candle candle-${index}`}>
+                      <div className="candle-stick"></div>
+                      <div className="candle-wick"></div>
+                      {isLit && (
+                        <div className="candle-flame">
+                          <div className="flame-core"></div>
+                          <div className="flame-outer"></div>
+                        </div>
+                      )}
+                      {!isLit && <div className="candle-smoke"></div>}
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Cake Sparkles */}
+                <div className="cake-sparkles">
+                  {[...Array(8)].map((_, i) => (
+                    <div key={i} className={`cake-sparkle cake-sparkle-${i}`}>✨</div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Blow Button */}
+              {showBlowButton && !allCandlesBlown && (
+                <button 
+                  className={`blow-button ${blowingAnimation ? 'blowing' : ''}`}
+                  onClick={handleBlowCandles}
+                  disabled={blowingAnimation}
+                >
+                  <Wind className="blow-icon" />
+                  <span>{blowingAnimation ? 'Blowing...' : 'Blow Candles'}</span>
+                </button>
+              )}
+              
+              {/* Wish Message */}
+              {showWishMessage && (
+                <div className="wish-message">
+                  <div className="wish-content">
+                    <Sparkles className="wish-icon" />
+                    <p>🎉 Make a wish, Chuiyaa! 🎉</p>
+                    <p>May all your dreams come true! ✨</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Photo Balloons with Messages */}
           {showPhotoBalloons && (
